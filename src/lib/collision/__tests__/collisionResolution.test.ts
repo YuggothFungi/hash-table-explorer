@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Node, chainMethod } from '../collisionResolution';
-import { HashTable } from '../hashTable';
-import { divisionMethod, multiplicationMethod, polynomialDivisionMethod } from '../hashFunctions';
+import { chainMethod } from '../collisionResolution';
+import { divisionMethod, multiplicationMethod, polynomialDivisionMethod } from '../../hashing/hashFunctions';
 
 // Константное значение размера хеш-таблицы для всех тестов
 const DEFAULT_TABLE_SIZE = 7;
@@ -39,17 +38,17 @@ describe('Метод внешних цепочек (разрешение кол�
     });
 
     it('должен добавлять ключ в новую строку, если хеш не совпадает', () => {
-      const keys = [7, 14]; // 7 % 7 = 0, 14 % 7 = 0
-      const values = ['значение 7', 'значение 14'];
+      const keys = [7, 8]; // 7 % 7 = 0, 8 % 7 = 1
+      const values = ['значение 7', 'значение 8'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       // Вставляем первый ключ
       chainMethod.insert(table, divisionMethod(keys[0], DEFAULT_TABLE_SIZE), keys[0], values[0]);
       // Вставляем второй ключ, который должен попасть в новую строку
-      chainMethod.insert(table, divisionMethod(keys[1], DEFAULT_TABLE_SIZE) + 1, keys[1], values[1]); // +1 для нового индекса
+      chainMethod.insert(table, divisionMethod(keys[1], DEFAULT_TABLE_SIZE), keys[1], values[1]);
       
       expect(table[divisionMethod(keys[0], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[0]);
-      expect(table[divisionMethod(keys[1], DEFAULT_TABLE_SIZE) + 1]?.key).toBe(keys[1]);
+      expect(table[divisionMethod(keys[1], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[1]);
     });
 
     it('должен добавлять ключ в цепочку, если хеш совпадает', () => {
@@ -153,19 +152,19 @@ describe('Метод внешних цепочек (разрешение кол�
     });
 
     it('должен добавлять ключ в новую строку, если хеш не совпадает', () => {
-      const keys = [10, 17]; // Пример ключей
-      const values = ['значение 10', 'значение 17'];
+      const keys = [10, 11]; // 10 % 7 = 3, 11 % 7 = 4
+      const values = ['значение 10', 'значение 11'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       chainMethod.insert(table, multiplicationMethod(keys[0], DEFAULT_TABLE_SIZE), keys[0], values[0]);
-      chainMethod.insert(table, multiplicationMethod(keys[1], DEFAULT_TABLE_SIZE) + 1, keys[1], values[1]); // +1 для нового индекса
+      chainMethod.insert(table, multiplicationMethod(keys[1], DEFAULT_TABLE_SIZE), keys[1], values[1]);
       
       expect(table[multiplicationMethod(keys[0], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[0]);
-      expect(table[multiplicationMethod(keys[1], DEFAULT_TABLE_SIZE) + 1]?.key).toBe(keys[1]);
+      expect(table[multiplicationMethod(keys[1], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[1]);
     });
 
     it('должен добавлять ключ в цепочку, если хеш совпадает', () => {
-      const keys = [10, 17, 24]; // Пример ключей
+      const keys = [10, 17, 24]; // Пример ключей, которые могут дать одинаковый хеш
       const values = ['значение 10', 'значение 17', 'значение 24'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
@@ -182,8 +181,8 @@ describe('Метод внешних цепочек (разрешение кол�
     });
 
     it('должен искать ключ первого уровня', () => {
-      const keys = [10, 17];
-      const values = ['значение 10', 'значение 17'];
+      const keys = [10, 11];
+      const values = ['значение 10', 'значение 11'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       keys.forEach((key, i) => {
@@ -209,8 +208,8 @@ describe('Метод внешних цепочек (разрешение кол�
     });
 
     it('должен возвращать null при поиске отсутствующего ключа первого уровня', () => {
-      const keys = [10, 17];
-      const values = ['значение 10', 'значение 17'];
+      const keys = [10, 11];
+      const values = ['значение 10', 'значение 11'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       keys.forEach((key, i) => {
@@ -221,8 +220,8 @@ describe('Метод внешних цепочек (разрешение кол�
     });
 
     it('должен возвращать null при поиске отсутствующего ключа в цепочке', () => {
-      const keys = [10, 17, 24]; // Пример ключей
-      const values = ['значение 10', 'значение 17', 'значение 24'];
+      const keys = [10, 11, 12]; // Пример ключей
+      const values = ['значение 10', 'значение 11', 'значение 12'];
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       keys.forEach((key, i) => {
@@ -258,10 +257,10 @@ describe('Метод внешних цепочек (разрешение кол�
       const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
       
       chainMethod.insert(table, polynomialDivisionMethod(keys[0], DEFAULT_TABLE_SIZE), keys[0], values[0]);
-      chainMethod.insert(table, polynomialDivisionMethod(keys[1], DEFAULT_TABLE_SIZE) + 1, keys[1], values[1]); // +1 для нового индекса
+      chainMethod.insert(table, polynomialDivisionMethod(keys[1], DEFAULT_TABLE_SIZE), keys[1], values[1]);
       
       expect(table[polynomialDivisionMethod(keys[0], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[0]);
-      expect(table[polynomialDivisionMethod(keys[1], DEFAULT_TABLE_SIZE) + 1]?.key).toBe(keys[1]);
+      expect(table[polynomialDivisionMethod(keys[1], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[1]);
     });
 
     it('должен добавлять ключ в цепочку, если хеш совпадает', () => {

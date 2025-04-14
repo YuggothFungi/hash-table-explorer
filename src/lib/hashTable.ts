@@ -1,5 +1,5 @@
-import { divisionMethod, polynomialDivisionMethod } from './hashFunctions';
-import { Node, chainMethod } from './collisionResolution';
+import { divisionMethod, polynomialDivisionMethod } from './hashing/hashFunctions';
+import { Node, chainMethod } from './collision/collisionResolution';
 
 export class HashTable {
     private table: (Node | null)[];

@@ -1,131 +1,181 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-# General rules
+### 🔄 Project Awareness & Context
 
-- Write code as an expert fullstack software developer
-- Verify information before making changes
-- Preserve existing code structures
-- Provide concise and relevant responses
-- Verify all information before making changes
-- ALWAYS write comments, docstrings, function descriptions and readme.md in Russian
+- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
 
-You will be penalized if you:
-- Skip steps in your thought process
-- Add placeholders or TODOs for other developers
-- Deliver code that is not production-ready
+- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
 
-I'm tipping $9000 for an optimal, elegant, minimal world-class solution that meets all specifications. Your code changes should be specific and complete. Think through the problem step-by-step.
+- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
 
-YOU MUST:
-- NEVER break existing functionality by removing/modifying code or CSS without knowing exactly how to restore the same function
-- Always strive to make your diff as tiny as possible
+- **Use TDD approach**:
+- Define what outcome should be tested
+- Create a test
+- Create simplest possible function or method that makes the test pass
+- Ensure the test passes
+- Refactor the code to comply with conventions and architecture patterns
+- Ensure the test passes still
 
-# Folder structure rules
-- ALWAYS use simple one line mkdir/rmdir commands to create or delete a directory
+### 🧱 Code Structure & Modularity
 
-# File-by-file changes
+- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
 
-- Make changes in small, incremental steps
-- Test changes thoroughly before committing
-- Document changes clearly in commit messages
+- **Organize code into clearly separated modules**, grouped by feature or responsibility.
 
-# Code style and formatting
+- **Use clear, consistent imports** (prefer relative imports within packages).
 
-- When you write code prefer basic functions over syntactic sugar 
-- Follow the project's coding standards
-- Use consistent naming conventions
-- Avoid using deprecated functions or libraries
-- Prefer iteration and modularization over code duplication.
-- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- **Always use one line commands** to create or delete a directory, create or move file
 
-# Debugging and testing
 
-- Include debug information in log files
-- Write unit tests for every method or function
-- Ensure all tests pass before merging
+### 🧪 Testing & Reliability
 
-# Project structure
+- **Always create Vitest unit tests for new features** (components, hooks, utils, API handlers).
 
-- Maintain a clear and organized project structure
-- Use meaningful names for files and directories
-- Avoid clutter by removing unnecessary files
-- Always update readme.md when project structure changes
-- Don't forget to update .gitignore file and project configuration files
+- **After updating any logic**, validate and update related tests. Check test coverage with:  
+  `npm test -- --coverage`
 
-# Clean Code
+- **Tests should live in `__tests__` folders** mirroring component structure:  
+  ```cmd
+  /src
+    /components
+      /UserCard
+        __tests__/
+          UserCard.test.tsx
+  ```
 
-Don't Repeat Yourself (DRY)
+- **Each test suite must include**:
+  - 1+ test for expected behavior
+  - 1 edge case (empty states, invalid inputs)
+  - 1 error case (API failures, validation errors)
 
-Duplication of code can make code very difficult to maintain. Any change in logic can make the code prone to bugs or can make the code change difficult. This can be fixed by doing code reuse (DRY Principle).
+- **Mock Supabase interactions** using `vi.mock`:
+  ```typescript
+  // __tests__/auth.test.ts
+  vi.mock('@/lib/supabase', () => ({
+    supabase: {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({ data: { user: null }, error: null })
+      }
+    }
+  }));
+  ```
 
-The DRY principle is stated as "Every piece of knowledge must have a single, unambiguous, authoritative representation within a system".
+### 📎 Style & Conventions
 
-The way to achieve DRY is by creating functions and classes to make sure that any logic should be written in only one place.
+- **Use React/TypeScript** with strict ESLint rules (`@typescript-eslint/recommended`)
 
-Curly's Law - Do One Thing
+- **Follow naming conventions**:
+  ```tsx
+  // PascalCase для компонентов
+  function UserProfile() {...}
 
-Curly's Law is about choosing a single, clearly defined goal for any particular bit of code: Do One Thing.
+  // camelCase для функций/переменных
+  const [userData, setUserData]  = useState()
 
-Curly's Law: A entity (class, function, variable) should mean one thing, and one thing only. It should not mean one thing in one circumstance and carry a different value from a different domain some other time. It should not mean two things at once. It should mean One Thing and should mean it all of the time.
+  // UPPER_SNAKE_CASE для констант
+  const API_TIMEOUT = 5000;
+  ```
 
-Keep It Simple Stupid (KISS)
+- **Write docstrings for complex functions**:
+  ```typescript
+  interface FormatOptions {
+    validate?: boolean;
+  }
 
-The KISS principle states that most systems work best if they are kept simple rather than made complicated; therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
+  /**
+   * Преобразует сырые данные пользователя в стандартизированный формат
+   * @param {unknown} rawData - Данные из Supabase response
+   * @param {FormatOptions} options - Параметры валидации
+   * @returns {User | null} Объект пользователя или null при ошибке
+   */
+  function formatUser(rawData: unknown, options?: FormatOptions): User | null {...}
+  ```
 
-Simple code has the following benefits:
-less time to write
-less chances of bugs
-easier to understand, debug and modify
+- **TypeScript practices**:
+  ```typescript
+  // Используйте интерфейсы для пропсов
+  interface UserCardProps {
+    user: User;
+    variant?: 'compact' | 'detailed';
+  }
 
-Do the simplest thing that could possibly work.
+  // Генерируйте типы для Supabase
+  type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+  ```
 
-Don't make me think
+- **Supabase connection**:
+  ```typescript
+  // lib/supabase/client.ts
+  import { createClient } from '@supabase/supabase-js';
+  
+  export const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_KEY
+  );
+  ```
 
-Code should be easy to read and understand without much thinking. If it isn't then there is a prospect of simplification.
+### 💡 Code Commenting
+- **Always use Russian** to write comments, docstrings, function descriptions, TODOs and md files
 
-You Aren't Gonna Need It (YAGNI)
+- **Document only non-obvious logic**:
+  ```typescript
+  // ❌ Избыточно:
+  // Устанавливаем начальное состояние
+  const [data, setData] = useState(null);
 
-You Aren't Gonna Need It (YAGNI) is an Extreme Programming (XP) practice which states: "Always implement things when you actually need them, never when you just foresee that you need them."
+  // ✅ Полезно:
+  // Кешируем последний успешный запрос для быстрого повторного рендера
+  const cachedResponse = useRef<ApiResponse | null>(null);
+  ```
 
-Even if you're totally, totally, totally sure that you'll need a feature, later on, don't implement it now. Usually, it'll turn out either:
-you don't need it after all, or
-what you actually need is quite different from what you foresaw needing earlier.
+- **Use TODO comments strategically**:
+  ```typescript
+  // TODO: Перейти на useTransition после обновления React 19
+  function handleNavigation() {...}
+  ```
 
-This doesn't mean you should avoid building flexibility into your code. It means you shouldn't overengineer something based on what you think you might need later on.
+- **Explain complex business logic**:
+  ```typescript
+  // Важно: обрабатывать NaN отдельно из-за особенностей API биллинга
+  const sanitizedValue = Number.isNaN(input) ? 0 : parseFloat(input);
+  ```
 
-There are two main reasons to practice YAGNI:
-You save time because you avoid writing code that you turn out not to need.
-Your code is better because you avoid polluting it with 'guesses' that turn out to be more or less wrong but stick around anyway.
+- **Avoid component-level comments** (документируйте через пропсы):
+  ```tsx
+  interface DataGridProps {
+    /**
+     * Режим виртуализации для больших наборов данных
+     * @default 'vertical'
+     */
+    virtualizationMode?: 'vertical' | 'horizontal';
+  }
+  ```
 
-Premature Optimization is the Root of All Evil
+### ✅ Task Completion
 
-Programmers waste enormous amounts of time thinking about or worrying about, the speed of noncritical parts of their programs, and these attempts at efficiency actually have a strong negative impact when debugging and maintenance are considered.
+- **Mark completed tasks in `TASK.md`** immediately after finishing them.
 
-We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil. Yet we should not pass up our opportunities in that critical 3%.
+- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
 
-- Donald Knuth
 
-Boy-Scout Rule
+### 📚 Documentation & Explainability
 
-Any time someone sees some code that isn't as clear as it should be, they should take the opportunity to fix it right there and then - or at least within a few minutes.
+- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
 
-This opportunistic refactoring is referred to by Uncle Bob as following the boy-scout rule - always leave the code behind in a better state than you found it.
+- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
 
-The code quality tends to degrade with each change. This results in technical debt. The Boy-Scout Principle saves us from that.
+- When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
 
-Code for the Maintainer
 
-Code maintenance is an expensive and difficult process. Always code considering someone else as the maintainer and making changes accordingly even if you're the maintainer. After a while, you'll remember the code as much as a stranger.
+### 🧠 AI Behavior Rules
 
-Principle of Least Astonishment
+- **Never assume missing context. Ask me questions if uncertain.**
 
-Principle of Least Astonishment states that a component of a system should behave in a way that most users will expect it to behave. The behavior should not astonish or surprise users.
+- **Never hallucinate libraries or functions** – only use known, verified Typescript packages.
 
-Code should do what the name and comments suggest. Conventions should be followed. Surprising side effects should be avoided as much as possible.
+- **Always confirm file paths and module names** exist before referencing them in code or tests.
 
-# Project specific rules
-- You use TypeScript, Node.js, Vite, React, Shadcn UI, Radix UI and Tailwind to create application.
-- You use Vitest, Testing Library and Cypress to create test for your code.
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
