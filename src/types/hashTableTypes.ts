@@ -9,12 +9,15 @@ export interface HashTableParams {
     collisionMethod: CollisionMethod;
     isLocked: boolean;
     tableRendered: boolean;
+    currentKey: string | number;
 }
 
 export interface HashTableControlsProps {
     params: HashTableParams;
     onParamsChange: (params: HashTableParams) => void;
     onLockChange: (isLocked: boolean) => void;
+    onAddKey: (key: string | number) => void;
+    onFindKey: (key: string | number) => void;
 }
 
 export interface HashTableEntry {
@@ -28,4 +31,5 @@ export interface HashTableEntry {
 export interface HashTableVisualizerProps {
     entries: HashTableEntry[];
     collisionMethod: CollisionMethod;
+    searchResult?: number | null;
 } 

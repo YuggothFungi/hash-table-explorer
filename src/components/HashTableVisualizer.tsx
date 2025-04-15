@@ -1,7 +1,11 @@
 import React from 'react';
 import { HashTableVisualizerProps, HashTableEntry } from '../types/hashTableTypes';
 
-export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ entries, collisionMethod }) => {
+export const HashTableVisualizer: React.FC<HashTableVisualizerProps & { searchResult?: number | null }> = ({ 
+    entries, 
+    collisionMethod,
+    searchResult 
+}) => {
     const renderTableHeader = () => {
         const baseHeaders = [
             { key: 'index', label: 'Индекс' },
@@ -31,6 +35,8 @@ export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ entrie
     };
 
     const renderTableRow = (entry: HashTableEntry) => {
+        const isHighlighted = searchResult !== null && entry.index === searchResult;
+        
         const baseCells = [
             { key: 'index', value: entry.index },
             { key: 'key', value: entry.key ?? '-' },
@@ -43,7 +49,10 @@ export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ entrie
         }
 
         return (
-            <tr key={entry.index} className="hover:bg-gray-50">
+            <tr 
+                key={entry.index} 
+                className={`${isHighlighted ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}
+            >
                 {baseCells.map(cell => (
                     <td
                         key={cell.key}

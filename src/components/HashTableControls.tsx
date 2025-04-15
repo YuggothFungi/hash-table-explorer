@@ -1,7 +1,13 @@
 import React from 'react';
 import { HashTableControlsProps, KeyType, HashMethod, CollisionMethod } from '../types/hashTableTypes';
 
-export const HashTableControls: React.FC<HashTableControlsProps> = ({ params, onParamsChange, onLockChange }) => {
+export const HashTableControls: React.FC<HashTableControlsProps> = ({ 
+    params, 
+    onParamsChange, 
+    onLockChange, 
+    onAddKey,
+    onFindKey
+}) => {
     const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const size = Math.min(Math.max(5, parseInt(e.target.value)), 20);
         onParamsChange({ ...params, size });
@@ -23,6 +29,28 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({ params, on
         // Блокируем параметры и устанавливаем флаг tableRendered в true
         onParamsChange({ ...params, isLocked: true, tableRendered: true });
         onLockChange(true);
+    };
+
+    const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Преобразуем ввод в число, если тип ключа - число
+        const newValue = params.keyType === 'number' 
+            ? e.target.value === '' ? '' : Number(e.target.value) 
+            : e.target.value;
+        
+        onParamsChange({ ...params, currentKey: newValue });
+    };
+
+    // Проверка валидности текущего ключа
+    const isKeyValid = () => {
+        if (params.currentKey === '' || params.currentKey === null) return false;
+        
+        if (params.keyType === 'number') {
+            const numValue = Number(params.currentKey);
+            return !isNaN(numValue) && numValue >= 0 && numValue <= 1023;
+        } else {
+            const strValue = String(params.currentKey);
+            return strValue.length > 0 && strValue.length <= 50;
+        }
     };
 
     return (
@@ -114,6 +142,43 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({ params, on
                         </button>
                     )}
                 </div>
+                
+                {params.tableRendered && (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                {params.keyType === 'number' 
+                                    ? 'Ключ (0-1023)' 
+                                    : 'Ключ (до 50 символов)'}
+                            </label>
+                            <input
+                                type={params.keyType === 'number' ? 'number' : 'text'}
+                                value={params.currentKey}
+                                onChange={handleKeyChange}
+                                min={params.keyType === 'number' ? 0 : undefined}
+                                max={params.keyType === 'number' ? 1023 : undefined}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                        </div>
+                        
+                        <div className="flex space-x-2 pt-2">
+                            <button
+                                onClick={() => onAddKey(params.currentKey)}
+                                className="flex-1 py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700"
+                                disabled={!isKeyValid()}
+                            >
+                                Добавить
+                            </button>
+                            <button
+                                onClick={() => onFindKey(params.currentKey)}
+                                className="flex-1 py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                disabled={!isKeyValid()}
+                            >
+                                Найти
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
