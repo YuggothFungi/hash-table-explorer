@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HashTableControls } from './components/HashTableControls';
 import { HashTableVisualizer } from './components/HashTableVisualizer';
-import { ErrorNotification } from './components/ErrorNotification';
+import { Notification } from './components/Notification';
 import { HashTableParams, HashTableEntry, ChainEntry } from './types/hashTableTypes';
 import { calculateHash, resolveCollision, searchKey } from './lib/collision/collisionResolution';
 import { HashTable } from './lib/hashTable';
@@ -20,9 +20,14 @@ const App: React.FC = () => {
     const [entries, setEntries] = useState<HashTableEntry[]>([]);
     const [chainEntries, setChainEntries] = useState<ChainEntry[]>([]);
     const [searchResult, setSearchResult] = useState<number | null>(null);
-    const [error, setError] = useState<{ isVisible: boolean, message: string }>({
+    const [notification, setNotification] = useState<{ 
+        isVisible: boolean, 
+        message: string, 
+        type: 'success' | 'error' | 'info' | 'warning' 
+    }>({
         isVisible: false,
-        message: ''
+        message: '',
+        type: 'info'
     });
     
     // Используем useRef для хранения экземпляра HashTable
@@ -43,13 +48,27 @@ const App: React.FC = () => {
             setEntries(initialEntries);
             setChainEntries([]);
             setSearchResult(null);
+            
+            // Сбрасываем все уведомления при создании новой таблицы
+            setNotification(prev => ({ ...prev, isVisible: false }));
         } else {
             setEntries([]);
             setChainEntries([]);
             setSearchResult(null);
             hashTableRef.current = null;
+            
+            // Сбрасываем все уведомления при удалении таблицы
+            setNotification(prev => ({ ...prev, isVisible: false }));
         }
     }, [params.tableRendered, params.size, params.collisionMethod]);
+
+    // Дополнительный эффект для сброса уведомлений при смене других параметров
+    useEffect(() => {
+        if (!params.isLocked) {
+            // Сбрасываем уведомления при изменении типа ключа или метода хеширования
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }
+    }, [params.keyType, params.hashMethod]);
 
     const handleAddKey = (key: string | number) => {
         if (key === '' || key === null) return;
@@ -60,9 +79,10 @@ const App: React.FC = () => {
         if (params.collisionMethod === 'chain' && hashTableRef.current) {
             const success = hashTableRef.current.insert(key, key);
             if (!success) {
-                setError({
+                setNotification({
                     isVisible: true,
-                    message: 'Ошибка при добавлении элемента в таблицу.'
+                    message: 'Ошибка при добавлении элемента в таблицу.',
+                    type: 'error'
                 });
                 return;
             }
@@ -83,17 +103,32 @@ const App: React.FC = () => {
             if (hashTableRef.current) {
                 setChainEntries(hashTableRef.current.getChainEntries());
             }
+            
+            // Показываем уведомление об успешном добавлении
+            setNotification({
+                isVisible: true,
+                message: `Ключ "${key}" успешно добавлен в таблицу.`,
+                type: 'success'
+            });
         } else {
             // Для других методов используем существующую логику
             const result = resolveCollision(entries, hashValue, key, hashValue, params.collisionMethod);
             
             if (result.overflow) {
-                setError({
+                setNotification({
                     isVisible: true,
-                    message: result.message || 'Таблица переполнена! Невозможно добавить новый элемент.'
+                    message: result.message || 'Таблица переполнена! Невозможно добавить новый элемент.',
+                    type: 'error'
                 });
             } else {
                 setEntries(result.entries);
+                
+                // Показываем уведомление об успешном добавлении
+                setNotification({
+                    isVisible: true,
+                    message: `Ключ "${key}" успешно добавлен в таблицу.`,
+                    type: 'success'
+                });
             }
         }
         
@@ -107,48 +142,76 @@ const App: React.FC = () => {
             const result = hashTableRef.current.search(key);
             
             if (!result.found) {
-                setError({
+                setNotification({
                     isVisible: true,
-                    message: 'Ключ не найден в таблице.'
+                    message: `Ключ "${key}" не найден в таблице.`,
+                    type: 'warning'
                 });
                 setSearchResult(null);
             } else {
                 setSearchResult(hashValue);
                 // Обновляем цепочки с подсветкой найденного ключа
                 setChainEntries(hashTableRef.current.getChainEntries(key));
+                
+                // Показываем уведомление о найденном ключе
+                setNotification({
+                    isVisible: true,
+                    message: `Ключ "${key}" найден в таблице по индексу ${hashValue}.`,
+                    type: 'success'
+                });
             }
         } else {
-            // Для других методов используем существующую логику
+            // Для других методов используем функцию searchKey
             const result = searchKey(entries, key, params.hashMethod);
             if (!result.found) {
-                setError({
+                setNotification({
                     isVisible: true,
-                    message: result.message || 'Ключ не найден в таблице.'
+                    message: result.message || `Ключ "${key}" не найден в таблице.`,
+                    type: 'warning'
                 });
                 setSearchResult(null);
             } else {
                 setSearchResult(result.index);
+                
+                // Показываем уведомление о найденном ключе
+                setNotification({
+                    isVisible: true,
+                    message: `Ключ "${key}" найден в таблице по индексу ${result.index}.`,
+                    type: 'success'
+                });
             }
         }
     };
 
-    const handleCloseError = () => {
-        setError({ isVisible: false, message: '' });
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, isVisible: false }));
     };
 
     const handleParamsChange = (newParams: HashTableParams) => {
         if (params.isLocked && !newParams.isLocked) {
             setParams({ ...newParams, tableRendered: false });
+            // Сбрасываем уведомления при пересоздании таблицы
+            setNotification(prev => ({ ...prev, isVisible: false }));
         } else {
             setParams(newParams);
+            // Если создается новая таблица, сбрасываем уведомления
+            if (params.tableRendered !== newParams.tableRendered && newParams.tableRendered) {
+                setNotification(prev => ({ ...prev, isVisible: false }));
+            }
         }
     };
 
     const handleLockChange = (isLocked: boolean) => {
         if (params.isLocked && !isLocked) {
             setParams(prev => ({ ...prev, isLocked, tableRendered: false }));
+            // Сбрасываем уведомления при разблокировке параметров
+            setNotification(prev => ({ ...prev, isVisible: false }));
         } else {
             setParams(prev => ({ ...prev, isLocked }));
+            // При блокировке параметров для новой таблицы сбрасываем уведомления
+            if (!params.isLocked && isLocked && !params.tableRendered) {
+                setNotification(prev => ({ ...prev, isVisible: false }));
+            }
         }
     };
 
@@ -177,10 +240,11 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <ErrorNotification 
-                message={error.message}
-                isVisible={error.isVisible}
-                onClose={handleCloseError}
+            <Notification 
+                message={notification.message}
+                isVisible={notification.isVisible}
+                onClose={handleCloseNotification}
+                type={notification.type}
             />
         </div>
     );

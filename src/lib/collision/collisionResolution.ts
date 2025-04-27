@@ -185,63 +185,43 @@ export const chainMethod = {
 export const searchKey = (entries: HashTableEntry[], key: string | number, hashMethod: string): { found: boolean, index: number | null, message?: string } => {
     const index = calculateHash(key, hashMethod, entries.length); // Вычисляем индекс
 
-    switch (hashMethod) {
-        case 'chain':
-            return searchChain(entries, index, key);
-        case 'internalChain':
-            return searchInternalChain(entries, index, key);
-        case 'linear':
-            return searchLinear(entries, index, key);
-        case 'quadratic':
-            return searchQuadratic(entries, index, key);
-        default:
-            return { found: false, index: null, message: 'Неизвестный метод хеширования' };
+    // Ищем ключ в таблице
+    if (entries[index].key === key) {
+        return { found: true, index: index };
     }
-};
 
-const searchChain = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
-    let currentIndex: number | null = index;
-    while (currentIndex !== null && entries[currentIndex].key !== null) {
-        if (entries[currentIndex].key === key) {
-            return { found: true, index: currentIndex }; // Возвращаем индекс найденного ключа
+    // Если ключа нет в основной позиции, проверяем в соответствии с методом разрешения коллизий
+    // Для ключа с методом chain ищем в основной позиции
+    if (entries[index].key !== null && entries[index].link !== null) {
+        // Проверяем связанные элементы
+        let currentIndex: number | null = entries[index].link;
+        while (currentIndex !== null) {
+            if (entries[currentIndex].key === key) {
+                return { found: true, index: currentIndex };
+            }
+            currentIndex = entries[currentIndex].link;
         }
-        currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
     }
-    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
-};
 
-const searchInternalChain = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
-    let currentIndex: number | null = index;
-    while (currentIndex !== null && entries[currentIndex].key !== null) {
-        if (entries[currentIndex].key === key) {
-            return { found: true, index: currentIndex }; // Возвращаем индекс найденного ключа
+    // Для линейного пробирования ищем последовательно
+    let linearIndex = (index + 1) % entries.length;
+    while (linearIndex !== index && entries[linearIndex].key !== null) {
+        if (entries[linearIndex].key === key) {
+            return { found: true, index: linearIndex };
         }
-        currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
+        linearIndex = (linearIndex + 1) % entries.length;
     }
-    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
-};
 
-const searchLinear = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
-    let probeIndex = index;
-    while (entries[probeIndex].key !== null) {
-        if (entries[probeIndex].key === key) {
-            return { found: true, index: probeIndex }; // Возвращаем индекс найденного ключа
-        }
-        probeIndex = (probeIndex + 1) % entries.length; // Переход к следующему индексу
-        if (probeIndex === index) break; // Вернулись к исходному индексу
-    }
-    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
-};
-
-const searchQuadratic = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
+    // Для квадратичного пробирования
     let i = 1;
-    let probeIndex = index;
-    while (entries[probeIndex].key !== null) {
-        if (entries[probeIndex].key === key) {
-            return { found: true, index: probeIndex }; // Возвращаем индекс найденного ключа
+    let quadraticIndex = (index + i * i) % entries.length;
+    while (i < entries.length && entries[quadraticIndex].key !== null) {
+        if (entries[quadraticIndex].key === key) {
+            return { found: true, index: quadraticIndex };
         }
-        probeIndex = (index + i * i) % entries.length; // Переход к следующему индексу
         i++;
+        quadraticIndex = (index + i * i) % entries.length;
     }
-    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
+
+    return { found: false, index: null, message: 'Ключ не найден в таблице' };
 }; 
