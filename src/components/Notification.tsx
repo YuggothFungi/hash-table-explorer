@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '../lib/utils';
-import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -17,6 +17,16 @@ export const Notification: React.FC<NotificationProps> = ({
   isVisible,
   type = 'info'
 }) => {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
+
   if (!isVisible) return null;
 
   const getTypeStyles = () => {
@@ -27,7 +37,7 @@ export const Notification: React.FC<NotificationProps> = ({
           title: 'Успешно',
           containerClass: 'border-green-500 bg-green-50',
           textClass: 'text-green-800',
-          buttonClass: 'bg-green-500 hover:bg-green-600 text-white'
+          progressClass: 'bg-green-500'
         };
       case 'error':
         return {
@@ -35,7 +45,7 @@ export const Notification: React.FC<NotificationProps> = ({
           title: 'Ошибка',
           containerClass: 'border-red-500 bg-red-50',
           textClass: 'text-red-800',
-          buttonClass: 'bg-red-500 hover:bg-red-600 text-white'
+          progressClass: 'bg-red-500'
         };
       case 'warning':
         return {
@@ -43,7 +53,7 @@ export const Notification: React.FC<NotificationProps> = ({
           title: 'Предупреждение',
           containerClass: 'border-yellow-500 bg-yellow-50',
           textClass: 'text-yellow-800',
-          buttonClass: 'bg-yellow-500 hover:bg-yellow-600 text-white'
+          progressClass: 'bg-yellow-500'
         };
       case 'info':
       default:
@@ -52,43 +62,49 @@ export const Notification: React.FC<NotificationProps> = ({
           title: 'Информация',
           containerClass: 'border-blue-500 bg-blue-50',
           textClass: 'text-blue-800',
-          buttonClass: 'bg-blue-500 hover:bg-blue-600 text-white'
+          progressClass: 'bg-blue-500'
         };
     }
   };
 
-  const { icon, title, containerClass, textClass, buttonClass } = getTypeStyles();
+  const { icon, title, containerClass, textClass, progressClass } = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm animate-in fade-in">
-      <div className={cn(
-        "relative w-full max-w-md rounded-lg border shadow-lg p-6 transition-all",
-        containerClass
-      )}>
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
+      <div 
+        className={cn(
+          "relative w-full max-w-sm rounded-lg border shadow-lg p-4 transition-all animate-in slide-in-from-bottom-5 duration-300",
+          containerClass
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
             {icon}
           </div>
           <div className="flex-1">
-            <h3 className={cn("text-base font-medium mb-1", textClass)}>
-              {title}
-            </h3>
-            <p className={cn("text-sm", textClass)}>
+            <div className="flex justify-between items-start">
+              <h3 className={cn("text-sm font-medium", textClass)}>
+                {title}
+              </h3>
+              <button 
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className={cn("text-xs mt-1", textClass)}>
               {message}
             </p>
           </div>
         </div>
         
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={onClose}
-            className={cn(
-              "inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors",
-              buttonClass
-            )}
-          >
-            Закрыть
-          </button>
+        {/* Полоса прогресса */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden rounded-b-lg">
+          <div 
+            className={cn("h-full animation-toast-progress", progressClass)}
+            style={{ animation: "toast-progress 3s linear forwards" }}
+          />
         </div>
       </div>
     </div>

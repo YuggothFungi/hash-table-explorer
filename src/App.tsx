@@ -88,21 +88,34 @@ const App: React.FC = () => {
             }
             
             // Обновляем записи в таблице
+            const tableNodes = hashTableRef.current.getTable();
             const updatedEntries = [...entries];
-            const entryIndex = hashValue;
-            updatedEntries[entryIndex] = {
-                ...updatedEntries[entryIndex],
-                key: updatedEntries[entryIndex].key === null ? key : updatedEntries[entryIndex].key,
-                hashValue,
-                collisions: updatedEntries[entryIndex].collisions + (updatedEntries[entryIndex].key !== null ? 1 : 0)
-            };
+            
+            // Для каждого индекса с непустым узлом обновляем соответствующую запись в таблице
+            tableNodes.forEach((node, idx) => {
+                if (node !== null) {
+                    // Подсчитываем количество коллизий (количество узлов после первого)
+                    let collisionCount = 0;
+                    let current = node.next;
+                    while (current !== null) {
+                        collisionCount++;
+                        current = current.next;
+                    }
+                    
+                    // Обновляем запись с ключом и хеш-значением
+                    updatedEntries[idx] = {
+                        ...updatedEntries[idx],
+                        key: node.key,
+                        hashValue: idx,
+                        collisions: collisionCount
+                    };
+                }
+            });
             
             setEntries(updatedEntries);
             
             // Обновляем цепочки
-            if (hashTableRef.current) {
-                setChainEntries(hashTableRef.current.getChainEntries());
-            }
+            setChainEntries(hashTableRef.current.getChainEntries());
             
             // Показываем уведомление об успешном добавлении
             setNotification({
