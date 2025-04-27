@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { HashTableControlsProps, KeyType, HashMethod, CollisionMethod } from '../types/hashTableTypes';
 import { cn } from '../lib/utils';
 
@@ -9,6 +9,9 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
     onAddKey,
     onFindKey
 }) => {
+    // Добавляем ref для поля ввода ключа
+    const keyInputRef = useRef<HTMLInputElement>(null);
+
     const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const size = Math.min(Math.max(5, parseInt(e.target.value)), 20);
         onParamsChange({ ...params, size });
@@ -80,6 +83,37 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
             default: return 'Внешние цепочки';
         }
     };
+
+    // Функция для фокуса и выделения всего текста в поле ввода
+    const focusAndSelectInputText = () => {
+        if (keyInputRef.current) {
+            keyInputRef.current.focus();
+            keyInputRef.current.select();
+        }
+    };
+
+    // Функция-обертка для обработки добавления ключа
+    const handleAddKeyClick = () => {
+        onAddKey(params.currentKey);
+        // Сбрасываем значение поля ввода
+        onParamsChange({ ...params, currentKey: params.keyType === 'number' ? '' : '' });
+        // Устанавливаем фокус и выделяем текст после добавления
+        setTimeout(focusAndSelectInputText, 0);
+    };
+
+    // Обработчик нажатия клавиш в поле ввода
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && isKeyValid()) {
+            handleAddKeyClick();
+        }
+    };
+
+    // Устанавливаем фокус на поле ввода при рендеринге таблицы
+    useEffect(() => {
+        if (params.tableRendered) {
+            focusAndSelectInputText();
+        }
+    }, [params.tableRendered]);
 
     return (
         <div className="p-4 border rounded-lg shadow-sm bg-card w-full mb-6">
@@ -243,9 +277,11 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
                                         : 'Ключ (до 50 символов)'}
                                 </label>
                                 <input
+                                    ref={keyInputRef}
                                     type={params.keyType === 'number' ? 'number' : 'text'}
                                     value={params.currentKey}
                                     onChange={handleKeyChange}
+                                    onKeyDown={handleKeyDown}
                                     min={params.keyType === 'number' ? 0 : undefined}
                                     max={params.keyType === 'number' ? 1023 : undefined}
                                     className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -254,7 +290,7 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
                             
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => onAddKey(params.currentKey)}
+                                    onClick={handleAddKeyClick}
                                     className={cn(
                                         "py-2 px-4 rounded-md text-sm font-medium transition-colors",
                                         "focus:outline-none focus:ring-2 focus:ring-offset-2",
