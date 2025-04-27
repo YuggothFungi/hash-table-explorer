@@ -28,8 +28,20 @@ export interface HashTableEntry {
     link: number | null;
 }
 
+export interface ChainNode {
+    key: string | number;
+    isHighlighted: boolean;
+}
+
+export interface ChainEntry {
+    index: number;
+    nodes: ChainNode[];
+    isHighlighted: boolean;
+}
+
 export interface HashTableVisualizerProps {
     entries: HashTableEntry[];
     collisionMethod: CollisionMethod;
     searchResult?: number | null;
+    chainEntries?: ChainEntry[];
 } 

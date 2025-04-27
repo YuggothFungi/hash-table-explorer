@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashTableControls } from './components/HashTableControls';
 import { HashTableVisualizer } from './components/HashTableVisualizer';
-import { HashTableParams, HashTableEntry } from './types/hashTableTypes';
+import { ErrorNotification } from './components/ErrorNotification';
+import { HashTableParams, HashTableEntry, ChainEntry } from './types/hashTableTypes';
 import { calculateHash, resolveCollision, searchKey } from './lib/collision/collisionResolution';
+import { HashTable } from './lib/hashTable';
 
 const App: React.FC = () => {
     const [params, setParams] = useState<HashTableParams>({
@@ -16,10 +18,21 @@ const App: React.FC = () => {
     });
 
     const [entries, setEntries] = useState<HashTableEntry[]>([]);
+    const [chainEntries, setChainEntries] = useState<ChainEntry[]>([]);
     const [searchResult, setSearchResult] = useState<number | null>(null);
+    const [error, setError] = useState<{ isVisible: boolean, message: string }>({
+        isVisible: false,
+        message: ''
+    });
+    
+    // Используем useRef для хранения экземпляра HashTable
+    const hashTableRef = useRef<HashTable | null>(null);
 
     useEffect(() => {
         if (params.tableRendered) {
+            // Создаем экземпляр HashTable
+            hashTableRef.current = new HashTable(params.size);
+            
             const initialEntries: HashTableEntry[] = Array.from({ length: params.size }, (_, index) => ({
                 index,
                 key: null,
@@ -28,10 +41,13 @@ const App: React.FC = () => {
                 link: null
             }));
             setEntries(initialEntries);
+            setChainEntries([]);
             setSearchResult(null);
         } else {
             setEntries([]);
+            setChainEntries([]);
             setSearchResult(null);
+            hashTableRef.current = null;
         }
     }, [params.tableRendered, params.size, params.collisionMethod]);
 
@@ -39,14 +55,85 @@ const App: React.FC = () => {
         if (key === '' || key === null) return;
 
         const hashValue = calculateHash(key, params.hashMethod, params.size);
-        const updatedEntries = resolveCollision(entries, hashValue, key, hashValue, params.collisionMethod);
-        setEntries(updatedEntries);
+        
+        // Для метода внешних цепочек используем класс HashTable
+        if (params.collisionMethod === 'chain' && hashTableRef.current) {
+            const success = hashTableRef.current.insert(key, key);
+            if (!success) {
+                setError({
+                    isVisible: true,
+                    message: 'Ошибка при добавлении элемента в таблицу.'
+                });
+                return;
+            }
+            
+            // Обновляем записи в таблице
+            const updatedEntries = [...entries];
+            const entryIndex = hashValue;
+            updatedEntries[entryIndex] = {
+                ...updatedEntries[entryIndex],
+                key: updatedEntries[entryIndex].key === null ? key : updatedEntries[entryIndex].key,
+                hashValue,
+                collisions: updatedEntries[entryIndex].collisions + (updatedEntries[entryIndex].key !== null ? 1 : 0)
+            };
+            
+            setEntries(updatedEntries);
+            
+            // Обновляем цепочки
+            if (hashTableRef.current) {
+                setChainEntries(hashTableRef.current.getChainEntries());
+            }
+        } else {
+            // Для других методов используем существующую логику
+            const result = resolveCollision(entries, hashValue, key, hashValue, params.collisionMethod);
+            
+            if (result.overflow) {
+                setError({
+                    isVisible: true,
+                    message: result.message || 'Таблица переполнена! Невозможно добавить новый элемент.'
+                });
+            } else {
+                setEntries(result.entries);
+            }
+        }
+        
         setSearchResult(null);
     };
 
     const handleFindKey = (key: string | number) => {
-        const result = searchKey(entries, key, params.hashMethod);
-        setSearchResult(result);
+        // Для метода внешних цепочек используем класс HashTable
+        if (params.collisionMethod === 'chain' && hashTableRef.current) {
+            const hashValue = calculateHash(key, params.hashMethod, params.size);
+            const result = hashTableRef.current.search(key);
+            
+            if (!result.found) {
+                setError({
+                    isVisible: true,
+                    message: 'Ключ не найден в таблице.'
+                });
+                setSearchResult(null);
+            } else {
+                setSearchResult(hashValue);
+                // Обновляем цепочки с подсветкой найденного ключа
+                setChainEntries(hashTableRef.current.getChainEntries(key));
+            }
+        } else {
+            // Для других методов используем существующую логику
+            const result = searchKey(entries, key, params.hashMethod);
+            if (!result.found) {
+                setError({
+                    isVisible: true,
+                    message: result.message || 'Ключ не найден в таблице.'
+                });
+                setSearchResult(null);
+            } else {
+                setSearchResult(result.index);
+            }
+        }
+    };
+
+    const handleCloseError = () => {
+        setError({ isVisible: false, message: '' });
     };
 
     const handleParamsChange = (newParams: HashTableParams) => {
@@ -83,12 +170,18 @@ const App: React.FC = () => {
                                     entries={entries}
                                     collisionMethod={params.collisionMethod}
                                     searchResult={searchResult}
+                                    chainEntries={chainEntries}
                                 />
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+            <ErrorNotification 
+                message={error.message}
+                isVisible={error.isVisible}
+                onClose={handleCloseError}
+            />
         </div>
     );
 };

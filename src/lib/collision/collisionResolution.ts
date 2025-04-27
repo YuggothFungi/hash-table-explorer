@@ -11,7 +11,7 @@ export const calculateHash = (key: string | number, hashMethod: string, size: nu
     }
 };
 
-export const resolveCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, collisionMethod: string): HashTableEntry[] => {
+export const resolveCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, collisionMethod: string): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
 
     if (collisionMethod === 'chain') {
@@ -24,23 +24,24 @@ export const resolveCollision = (entries: HashTableEntry[], index: number, key: 
         return resolveQuadraticCollision(newEntries, index, key, hashValue, entries.length);
     }
 
-    return newEntries;
+    return { entries: newEntries, overflow: false };
 };
 
-const resolveChainCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number): HashTableEntry[] => {
+const resolveChainCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number): { entries: HashTableEntry[], overflow: boolean } => {
     const newEntries = [...entries];
     if (newEntries[index].key === null) {
         newEntries[index] = { ...newEntries[index], key, hashValue, collisions: 0 };
     } else {
         newEntries[index] = { ...newEntries[index], collisions: newEntries[index].collisions + 1 };
     }
-    return newEntries;
+    return { entries: newEntries, overflow: false };
 };
 
-const resolveInternalChainCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): HashTableEntry[] => {
+const resolveInternalChainCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
     if (newEntries[index].key === null) {
         newEntries[index] = { ...newEntries[index], key, hashValue, collisions: 0 };
+        return { entries: newEntries, overflow: false };
     } else {
         let freeIndex = (index + 1) % size;
         while (newEntries[freeIndex].key !== null && freeIndex !== index) {
@@ -48,8 +49,11 @@ const resolveInternalChainCollision = (entries: HashTableEntry[], index: number,
         }
 
         if (freeIndex === index) {
-            alert('Таблица переполнена!');
-            return newEntries;
+            return { 
+                entries: newEntries, 
+                overflow: true, 
+                message: 'Таблица переполнена! Невозможно добавить новый элемент с использованием метода внутренних цепочек.' 
+            };
         }
 
         let currentIndex: number | null = index;
@@ -61,14 +65,15 @@ const resolveInternalChainCollision = (entries: HashTableEntry[], index: number,
             newEntries[currentIndex] = { ...newEntries[currentIndex], link: freeIndex };
             newEntries[freeIndex] = { ...newEntries[freeIndex], key, hashValue, collisions: newEntries[index].collisions + 1 };
         }
+        return { entries: newEntries, overflow: false };
     }
-    return newEntries;
 };
 
-const resolveLinearCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): HashTableEntry[] => {
+const resolveLinearCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
     if (newEntries[index].key === null) {
         newEntries[index] = { ...newEntries[index], key, hashValue, collisions: 0 };
+        return { entries: newEntries, overflow: false };
     } else {
         let probeIndex = (index + 1) % size;
         let collisions = 1;
@@ -79,19 +84,23 @@ const resolveLinearCollision = (entries: HashTableEntry[], index: number, key: s
         }
 
         if (probeIndex === index) {
-            alert('Таблица переполнена!');
-            return newEntries;
+            return { 
+                entries: newEntries, 
+                overflow: true, 
+                message: 'Таблица переполнена! Невозможно добавить новый элемент с использованием метода линейного опробования.' 
+            };
         }
 
         newEntries[probeIndex] = { ...newEntries[probeIndex], key, hashValue, collisions };
+        return { entries: newEntries, overflow: false };
     }
-    return newEntries;
 };
 
-const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): HashTableEntry[] => {
+const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
     if (newEntries[index].key === null) {
         newEntries[index] = { ...newEntries[index], key, hashValue, collisions: 0 };
+        return { entries: newEntries, overflow: false };
     } else {
         let i = 1;
         let collisions = 1;
@@ -104,13 +113,16 @@ const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key
         }
 
         if (i >= size) {
-            alert('Таблица переполнена или не удалось найти свободную ячейку!');
-            return newEntries;
+            return { 
+                entries: newEntries, 
+                overflow: true, 
+                message: 'Таблица переполнена или не удалось найти свободную ячейку при квадратичном опробовании!' 
+            };
         }
 
         newEntries[probeIndex] = { ...newEntries[probeIndex], key, hashValue, collisions };
+        return { entries: newEntries, overflow: false };
     }
-    return newEntries;
 };
 
 // Класс для узла связанного списка
@@ -129,12 +141,13 @@ export class Node {
 // Методы для работы с цепочками (связанными списками)
 export const chainMethod = {
     // Вставка элемента с использованием метода цепочек
-    insert: (table: (Node | null)[], index: number, key: string | number, data: any): void => {
+    insert: (table: (Node | null)[], index: number, key: string | number, data: any): { success: boolean, isNewElement: boolean } => {
         const newNode = new Node(key, data);
 
         if (table[index] === null) {
             // Если позиция пуста, вставляем новый узел
             table[index] = newNode;
+            return { success: true, isNewElement: true };
         } else {
             // Если позиция занята, добавляем в связанный список
             let current = table[index];
@@ -142,15 +155,17 @@ export const chainMethod = {
                 if (current.key === key) {
                     // Если ключ уже существует, обновляем данные
                     current.data = data;
-                    return;
+                    return { success: true, isNewElement: false };
                 }
                 if (current.next === null) {
                     current.next = newNode; // Добавляем новый узел в конец
-                    return;
+                    return { success: true, isNewElement: true };
                 }
                 current = current.next;
             }
         }
+        
+        return { success: false, isNewElement: false };
     },
 
     // Поиск по ключу с использованием метода цепочек
@@ -167,7 +182,7 @@ export const chainMethod = {
     }
 };
 
-export const searchKey = (entries: HashTableEntry[], key: string | number, hashMethod: string): number | null => {
+export const searchKey = (entries: HashTableEntry[], key: string | number, hashMethod: string): { found: boolean, index: number | null, message?: string } => {
     const index = calculateHash(key, hashMethod, entries.length); // Вычисляем индекс
 
     switch (hashMethod) {
@@ -180,53 +195,53 @@ export const searchKey = (entries: HashTableEntry[], key: string | number, hashM
         case 'quadratic':
             return searchQuadratic(entries, index, key);
         default:
-            return null;
+            return { found: false, index: null, message: 'Неизвестный метод хеширования' };
     }
 };
 
-const searchChain = (entries: HashTableEntry[], index: number, key: string | number): number | null => {
+const searchChain = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
     let currentIndex: number | null = index;
     while (currentIndex !== null && entries[currentIndex].key !== null) {
         if (entries[currentIndex].key === key) {
-            return currentIndex; // Возвращаем индекс найденного ключа
+            return { found: true, index: currentIndex }; // Возвращаем индекс найденного ключа
         }
         currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
     }
-    return null; // Ключ не найден
+    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
 };
 
-const searchInternalChain = (entries: HashTableEntry[], index: number, key: string | number): number | null => {
+const searchInternalChain = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
     let currentIndex: number | null = index;
     while (currentIndex !== null && entries[currentIndex].key !== null) {
         if (entries[currentIndex].key === key) {
-            return currentIndex; // Возвращаем индекс найденного ключа
+            return { found: true, index: currentIndex }; // Возвращаем индекс найденного ключа
         }
         currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
     }
-    return null; // Ключ не найден
+    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
 };
 
-const searchLinear = (entries: HashTableEntry[], index: number, key: string | number): number | null => {
+const searchLinear = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
     let probeIndex = index;
     while (entries[probeIndex].key !== null) {
         if (entries[probeIndex].key === key) {
-            return probeIndex; // Возвращаем индекс найденного ключа
+            return { found: true, index: probeIndex }; // Возвращаем индекс найденного ключа
         }
         probeIndex = (probeIndex + 1) % entries.length; // Переход к следующему индексу
         if (probeIndex === index) break; // Вернулись к исходному индексу
     }
-    return null; // Ключ не найден
+    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
 };
 
-const searchQuadratic = (entries: HashTableEntry[], index: number, key: string | number): number | null => {
+const searchQuadratic = (entries: HashTableEntry[], index: number, key: string | number): { found: boolean, index: number | null, message?: string } => {
     let i = 1;
     let probeIndex = index;
     while (entries[probeIndex].key !== null) {
         if (entries[probeIndex].key === key) {
-            return probeIndex; // Возвращаем индекс найденного ключа
+            return { found: true, index: probeIndex }; // Возвращаем индекс найденного ключа
         }
         probeIndex = (index + i * i) % entries.length; // Переход к следующему индексу
         i++;
     }
-    return null; // Ключ не найден
+    return { found: false, index: null, message: 'Ключ не найден в таблице' }; // Ключ не найден
 }; 
