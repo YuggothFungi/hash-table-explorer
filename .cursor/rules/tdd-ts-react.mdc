@@ -106,6 +106,40 @@ alwaysApply: false
   type ProfileRow = Database['public']['Tables']['profiles']['Row'];
   ```
 
+# Правило для явной проверки на null
+"explicit-null-check": {
+    "type": "error",
+    "message": "Все переменные, которые могут быть null, должны проверяться на null перед использованием. Убедитесь, что вы используете явные проверки на null в условиях и циклах."
+}
+
+```typescript
+  // ❌ Некорректная проверка:
+  let currentIndex = index;
+      while (currentIndex !== null && entries[currentIndex].key !== null) {
+          if (entries[currentIndex].key === key) {
+              return `Ключ найден в ячейке ${currentIndex}. Данные: ${entries[currentIndex]}`;
+          }
+          currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
+      }
+      return 'Ключ не найден.';
+
+  // ✅ Корректная проверка:
+  let currentIndex: number | null = index;
+      while (currentIndex !== null && entries[currentIndex].key !== null) {
+          if (entries[currentIndex].key === key) {
+              return `Ключ найден в ячейке ${currentIndex}. Данные: ${entries[currentIndex]}`;
+          }
+          currentIndex = entries[currentIndex].link; // Переход к следующему элементу в цепочке
+      }
+      return 'Ключ не найден.';
+```
+
+- **Правило для проверки наличия функций поиска для всех методов разрешения коллизий**
+"search-function-check": {
+    "type": "error",
+    "message": "Для каждого метода разрешения коллизий должна быть реализована соответствующая функция поиска."
+}
+
 - **Supabase connection**:
   ```typescript
   // lib/supabase/client.ts

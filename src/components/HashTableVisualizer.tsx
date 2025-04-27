@@ -1,7 +1,7 @@
 import React from 'react';
 import { HashTableVisualizerProps, HashTableEntry } from '../types/hashTableTypes';
 
-export const HashTableVisualizer: React.FC<HashTableVisualizerProps & { searchResult?: number | null }> = ({ 
+export const HashTableVisualizer: React.FC<HashTableVisualizerProps> = ({ 
     entries, 
     collisionMethod,
     searchResult 
