@@ -1,4 +1,6 @@
 import React from 'react';
+import { cn } from '../lib/utils';
+import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -21,108 +23,69 @@ export const Notification: React.FC<NotificationProps> = ({
     switch (type) {
       case 'success':
         return {
-          icon: (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              className="text-green-500 mr-2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              stroke="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-          ),
+          icon: <CheckCircle className="h-5 w-5 text-green-500" />,
           title: 'Успешно',
-          buttonColor: 'bg-green-500 hover:bg-green-600'
+          containerClass: 'border-green-500 bg-green-50',
+          textClass: 'text-green-800',
+          buttonClass: 'bg-green-500 hover:bg-green-600 text-white'
         };
       case 'error':
         return {
-          icon: (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              className="text-red-500 mr-2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              stroke="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          ),
+          icon: <XCircle className="h-5 w-5 text-red-500" />,
           title: 'Ошибка',
-          buttonColor: 'bg-red-500 hover:bg-red-600'
+          containerClass: 'border-red-500 bg-red-50',
+          textClass: 'text-red-800',
+          buttonClass: 'bg-red-500 hover:bg-red-600 text-white'
         };
       case 'warning':
         return {
-          icon: (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              className="text-yellow-500 mr-2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              stroke="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          icon: <AlertCircle className="h-5 w-5 text-yellow-500" />,
           title: 'Предупреждение',
-          buttonColor: 'bg-yellow-500 hover:bg-yellow-600'
+          containerClass: 'border-yellow-500 bg-yellow-50',
+          textClass: 'text-yellow-800',
+          buttonClass: 'bg-yellow-500 hover:bg-yellow-600 text-white'
         };
       case 'info':
       default:
         return {
-          icon: (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              className="text-blue-500 mr-2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              stroke="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          icon: <Info className="h-5 w-5 text-blue-500" />,
           title: 'Информация',
-          buttonColor: 'bg-blue-500 hover:bg-blue-600'
+          containerClass: 'border-blue-500 bg-blue-50',
+          textClass: 'text-blue-800',
+          buttonClass: 'bg-blue-500 hover:bg-blue-600 text-white'
         };
     }
   };
 
-  const { icon, title, buttonColor } = getTypeStyles();
+  const { icon, title, containerClass, textClass, buttonClass } = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-      <div className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center mb-3">
-          {icon}
-          <h3 className="text-md font-semibold text-gray-900">{title}</h3>
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm animate-in fade-in">
+      <div className={cn(
+        "relative w-full max-w-md rounded-lg border shadow-lg p-6 transition-all",
+        containerClass
+      )}>
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            {icon}
+          </div>
+          <div className="flex-1">
+            <h3 className={cn("text-base font-medium mb-1", textClass)}>
+              {title}
+            </h3>
+            <p className={cn("text-sm", textClass)}>
+              {message}
+            </p>
+          </div>
         </div>
         
-        <p className="text-gray-700 mb-4 text-sm pl-7">{message}</p>
-        
-        <div className="flex justify-end">
+        <div className="mt-4 flex justify-end">
           <button
             onClick={onClose}
-            className={`px-3 py-1.5 text-sm text-white rounded transition-colors ${buttonColor}`}
+            className={cn(
+              "inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              buttonClass
+            )}
           >
             Закрыть
           </button>

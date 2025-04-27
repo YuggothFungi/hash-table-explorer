@@ -1,5 +1,6 @@
 import React from 'react';
 import { HashTableControlsProps, KeyType, HashMethod, CollisionMethod } from '../types/hashTableTypes';
+import { cn } from '../lib/utils';
 
 export const HashTableControls: React.FC<HashTableControlsProps> = ({ 
     params, 
@@ -54,81 +55,102 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
     };
 
     return (
-        <div className="p-4 border rounded-lg shadow-sm bg-white">
-            <h2 className="text-lg font-semibold mb-4">Параметры хеш-таблицы</h2>
+        <div className="p-6 border rounded-lg shadow-sm bg-card">
+            <h2 className="text-xl font-semibold mb-5 text-card-foreground">Параметры хеш-таблицы</h2>
             
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Размер таблицы (5-20)
-                    </label>
-                    <input
-                        type="number"
-                        min="5"
-                        max="20"
-                        value={params.size}
-                        onChange={handleSizeChange}
-                        disabled={params.isLocked}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
+            <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Размер таблицы (5-20)
+                        </label>
+                        <input
+                            type="number"
+                            min="5"
+                            max="20"
+                            value={params.size}
+                            onChange={handleSizeChange}
+                            disabled={params.isLocked}
+                            className={cn(
+                                "w-full rounded-md border px-3 py-2 text-sm",
+                                "focus:outline-none focus:ring-2 focus:ring-primary",
+                                params.isLocked ? "bg-muted cursor-not-allowed" : "bg-background"
+                            )}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Тип ключа
+                        </label>
+                        <select
+                            value={params.keyType}
+                            onChange={handleKeyTypeChange}
+                            disabled={params.isLocked}
+                            className={cn(
+                                "w-full rounded-md border px-3 py-2 text-sm",
+                                "focus:outline-none focus:ring-2 focus:ring-primary",
+                                params.isLocked ? "bg-muted cursor-not-allowed" : "bg-background"
+                            )}
+                        >
+                            <option value="number">Числовой (0-1023)</option>
+                            <option value="string">Строковый (до 50 символов)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Метод хеширования
+                        </label>
+                        <select
+                            value={params.hashMethod}
+                            onChange={handleHashMethodChange}
+                            disabled={params.isLocked}
+                            className={cn(
+                                "w-full rounded-md border px-3 py-2 text-sm",
+                                "focus:outline-none focus:ring-2 focus:ring-primary",
+                                params.isLocked ? "bg-muted cursor-not-allowed" : "bg-background"
+                            )}
+                        >
+                            <option value="division">Метод деления</option>
+                            <option value="multiplication">Метод умножения</option>
+                            <option value="polynomial">Метод многочленов</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            Метод разрешения коллизий
+                        </label>
+                        <select
+                            value={params.collisionMethod}
+                            onChange={handleCollisionMethodChange}
+                            disabled={params.isLocked}
+                            className={cn(
+                                "w-full rounded-md border px-3 py-2 text-sm",
+                                "focus:outline-none focus:ring-2 focus:ring-primary",
+                                params.isLocked ? "bg-muted cursor-not-allowed" : "bg-background"
+                            )}
+                        >
+                            <option value="chain">Внешние цепочки</option>
+                            <option value="internalChain">Внутренние цепочки</option>
+                            <option value="linear">Линейное опробование</option>
+                            <option value="quadratic">Квадратичное опробование</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Тип ключа
-                    </label>
-                    <select
-                        value={params.keyType}
-                        onChange={handleKeyTypeChange}
-                        disabled={params.isLocked}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                        <option value="number">Числовой (0-1023)</option>
-                        <option value="string">Строковый (до 50 символов)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Метод хеширования
-                    </label>
-                    <select
-                        value={params.hashMethod}
-                        onChange={handleHashMethodChange}
-                        disabled={params.isLocked}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                        <option value="division">Метод деления</option>
-                        <option value="multiplication">Метод умножения</option>
-                        <option value="polynomial">Метод многочленов</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Метод разрешения коллизий
-                    </label>
-                    <select
-                        value={params.collisionMethod}
-                        onChange={handleCollisionMethodChange}
-                        disabled={params.isLocked}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                        <option value="chain">Внешние цепочки</option>
-                        <option value="internalChain">Внутренние цепочки</option>
-                        <option value="linear">Линейное опробование</option>
-                        <option value="quadratic">Квадратичное опробование</option>
-                    </select>
-                </div>
-
-                <div className="flex space-x-2 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button
                         onClick={() => onLockChange(!params.isLocked)}
-                        className={`flex-1 py-2 px-4 rounded-md text-white ${
-                            params.isLocked
-                                ? 'bg-green-600 hover:bg-green-700'
-                                : 'bg-red-600 hover:bg-red-700'
-                        }`}
+                        className={cn(
+                            "py-2 px-4 rounded-md text-sm font-medium transition-colors",
+                            "focus:outline-none focus:ring-2 focus:ring-offset-2",
+                            params.isLocked 
+                                ? "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500" 
+                                : "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+                            "flex-1"
+                        )}
                     >
                         {params.isLocked ? 'Разблокировать параметры' : 'Заблокировать параметры'}
                     </button>
@@ -136,7 +158,12 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
                     {!params.tableRendered && !params.isLocked && (
                         <button
                             onClick={handleRenderTable}
-                            className="flex-1 py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                            className={cn(
+                                "py-2 px-4 rounded-md text-sm font-medium transition-colors",
+                                "bg-primary text-primary-foreground hover:bg-primary/90",
+                                "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                                "flex-1"
+                            )}
                         >
                             Создать таблицу
                         </button>
@@ -144,9 +171,9 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
                 </div>
                 
                 {params.tableRendered && (
-                    <>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                    <div className="border-t border-border pt-4 mt-4">
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-1">
                                 {params.keyType === 'number' 
                                     ? 'Ключ (0-1023)' 
                                     : 'Ключ (до 50 символов)'}
@@ -157,27 +184,40 @@ export const HashTableControls: React.FC<HashTableControlsProps> = ({
                                 onChange={handleKeyChange}
                                 min={params.keyType === 'number' ? 0 : undefined}
                                 max={params.keyType === 'number' ? 1023 : undefined}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                         </div>
                         
-                        <div className="flex space-x-2 pt-2">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <button
                                 onClick={() => onAddKey(params.currentKey)}
-                                className="flex-1 py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700"
+                                className={cn(
+                                    "py-2 px-4 rounded-md text-sm font-medium transition-colors",
+                                    "focus:outline-none focus:ring-2 focus:ring-offset-2",
+                                    "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
+                                    "flex-1",
+                                    !isKeyValid() && "opacity-50 cursor-not-allowed"
+                                )}
                                 disabled={!isKeyValid()}
                             >
                                 Добавить
                             </button>
                             <button
                                 onClick={() => onFindKey(params.currentKey)}
-                                className="flex-1 py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                className={cn(
+                                    "py-2 px-4 rounded-md text-sm font-medium transition-colors",
+                                    "focus:outline-none focus:ring-2 focus:ring-offset-2",
+                                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                                    "focus:ring-primary",
+                                    "flex-1",
+                                    !isKeyValid() && "opacity-50 cursor-not-allowed"
+                                )}
                                 disabled={!isKeyValid()}
                             >
                                 Найти
                             </button>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </div>
