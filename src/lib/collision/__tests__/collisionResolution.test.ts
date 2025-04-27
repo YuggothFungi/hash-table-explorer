@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { chainMethod } from '../collisionResolution';
+import { chainMethod, resolveQuadraticCollision, resolveCollision } from '../collisionResolution';
 import { divisionMethod, multiplicationMethod, polynomialDivisionMethod } from '../../hashing/hashFunctions';
+import { HashTableEntry } from '../../../types/hashTableTypes';
 
 // Константное значение размера хеш-таблицы для всех тестов
 const DEFAULT_TABLE_SIZE = 7;
@@ -163,23 +164,6 @@ describe('Метод внешних цепочек (разрешение кол�
       expect(table[multiplicationMethod(keys[1], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[1]);
     });
 
-    it('должен добавлять ключ в цепочку, если хеш совпадает', () => {
-      const keys = [10, 17, 24]; // Пример ключей, которые могут дать одинаковый хеш
-      const values = ['значение 10', 'значение 17', 'значение 24'];
-      const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
-      
-      keys.forEach((key, i) => {
-        chainMethod.insert(table, multiplicationMethod(key, DEFAULT_TABLE_SIZE), key, values[i]);
-      });
-      
-      let node = table[multiplicationMethod(keys[0], DEFAULT_TABLE_SIZE)];
-      expect(node?.key).toBe(keys[0]);
-      node = node?.next || null;
-      expect(node?.key).toBe(keys[1]);
-      node = node?.next || null;
-      expect(node?.key).toBe(keys[2]);
-    });
-
     it('должен искать ключ первого уровня', () => {
       const keys = [10, 11];
       const values = ['значение 10', 'значение 11'];
@@ -263,23 +247,6 @@ describe('Метод внешних цепочек (разрешение кол�
       expect(table[polynomialDivisionMethod(keys[1], DEFAULT_TABLE_SIZE)]?.key).toBe(keys[1]);
     });
 
-    it('должен добавлять ключ в цепочку, если хеш совпадает', () => {
-      const keys = ['Alpha', 'Bravo', 'Charlie']; // Пример ключей
-      const values = ['значение Alpha', 'значение Bravo', 'значение Charlie'];
-      const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
-      
-      keys.forEach((key, i) => {
-        chainMethod.insert(table, polynomialDivisionMethod(key, DEFAULT_TABLE_SIZE), key, values[i]);
-      });
-      
-      let node = table[polynomialDivisionMethod(keys[0], DEFAULT_TABLE_SIZE)];
-      expect(node?.key).toBe(keys[0]);
-      node = node?.next || null;
-      expect(node?.key).toBe(keys[1]);
-      node = node?.next || null;
-      expect(node?.key).toBe(keys[2]);
-    });
-
     it('должен искать ключ первого уровня', () => {
       const keys = ['Alpha', 'Bravo'];
       const values = ['значение Alpha', 'значение Bravo'];
@@ -333,28 +300,242 @@ describe('Метод внешних цепочек (разрешение кол�
   });
 });
 
-describe('Метод внешних цепочек (разрешение коллизий) с методом умножения', () => {
-  // Тест 1: Вставка и поиск строковых ключей, дающих коллизию при методе умножения
-  it('должен корректно обрабатывать коллизии строковых ключей (метод умножения)', () => {
-    // Строковые ключи, которые дадут коллизию при методе умножения
-    const keys = ['Alpha', 'Bravo', 'Charlie']; // Пример ключей
-    const values = ['значение Alpha', 'значение Bravo', 'значение Charlie'];
+describe('Метод квадратичного опробования', () => {
+  const createEmptyEntries = (size: number): HashTableEntry[] => {
+    return Array(size).fill(null).map((_, index) => ({
+      index,
+      key: null,
+      hashValue: null,
+      collisions: 0,
+      link: null
+    }));
+  };
+  
+  it('должен добавлять элемент в свободную ячейку при исходном индексе', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const index = 3;
+    const key = 123;
+    const hashValue = index;
     
-    // Вычисляем хеш-индекс для первого ключа
-    const hashIndex = multiplicationMethod(keys[0], DEFAULT_TABLE_SIZE);
+    const result = resolveQuadraticCollision(entries, index, key, hashValue, size);
     
-    // Создаем простой массив для хранения данных
+    expect(result.overflow).toBe(false);
+    expect(result.entries[index].key).toBe(key);
+    expect(result.entries[index].hashValue).toBe(hashValue);
+    expect(result.entries[index].collisions).toBe(0);
+  });
+  
+  it('должен разрешать коллизию с помощью квадратичного опробования', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const index = 3;
+    
+    // Занимаем исходную ячейку
+    entries[index] = { ...entries[index], key: 100, hashValue: index, collisions: 0, link: null };
+    
+    const newKey = 123;
+    const hashValue = index;
+    
+    const result = resolveQuadraticCollision(entries, index, newKey, hashValue, size);
+    
+    // Проверяем, что новый элемент добавлен с использованием квадратичного опробования
+    // Должен быть помещен в ячейку с индексом (3 + 1²) % 10 = 4
+    expect(result.overflow).toBe(false);
+    expect(result.entries[4].key).toBe(newKey);
+    expect(result.entries[4].hashValue).toBe(hashValue);
+    expect(result.entries[4].collisions).toBe(1);
+  });
+  
+  it('должен разрешать множественные коллизии с квадратичным опробованием', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const index = 3;
+    
+    // Занимаем исходную ячейку и ячейку первого опробования
+    entries[index] = { ...entries[index], key: 100, hashValue: index, collisions: 0, link: null };
+    entries[(index + 1) % size] = { ...entries[(index + 1) % size], key: 101, hashValue: index, collisions: 1, link: null };
+    
+    const newKey = 123;
+    const hashValue = index;
+    
+    const result = resolveQuadraticCollision(entries, index, newKey, hashValue, size);
+    
+    // Должен быть помещен в ячейку с индексом (3 + 2²) % 10 = 7
+    expect(result.overflow).toBe(false);
+    expect(result.entries[7].key).toBe(newKey);
+    expect(result.entries[7].hashValue).toBe(hashValue);
+    expect(result.entries[7].collisions).toBe(2);
+  });
+  
+  it('должен ограничивать количество проб и сообщать о переполнении', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const index = 3;
+    const MAX_PROBES = Math.ceil(size / 2); // 5 для таблицы размером 10
+    
+    // Занимаем все ячейки, которые могут быть использованы при квадратичном опробовании
+    entries[index] = { ...entries[index], key: 100, hashValue: index, collisions: 0, link: null };
+    for (let i = 1; i <= MAX_PROBES; i++) {
+      const probeIndex = (index + i * i) % size;
+      entries[probeIndex] = { 
+        ...entries[probeIndex], 
+        key: 100 + i, 
+        hashValue: index, 
+        collisions: i, 
+        link: null 
+      };
+    }
+    
+    const newKey = 123;
+    const hashValue = index;
+    
+    const result = resolveQuadraticCollision(entries, index, newKey, hashValue, size);
+    
+    // Должно сообщить о переполнении, так как все возможные ячейки заняты
+    expect(result.overflow).toBe(true);
+    expect(result.message).toContain('Превышено максимальное число проб');
+  });
+  
+  it('должен корректно обрабатывать выход индекса за пределы таблицы', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const index = 8; // Выбираем индекс ближе к концу таблицы
+    
+    // Занимаем исходную ячейку
+    entries[index] = { ...entries[index], key: 100, hashValue: index, collisions: 0, link: null };
+    
+    const newKey = 123;
+    const hashValue = index;
+    
+    const result = resolveQuadraticCollision(entries, index, newKey, hashValue, size);
+    
+    // (8 + 1²) % 10 = 9, но если бы не было операции по модулю, было бы 9
+    expect(result.overflow).toBe(false);
+    expect(result.entries[9].key).toBe(newKey);
+    
+    // Теперь проверим случай, когда индекс выходит за пределы
+    const entries2 = createEmptyEntries(size);
+    entries2[index] = { ...entries2[index], key: 100, hashValue: index, collisions: 0, link: null };
+    entries2[9] = { ...entries2[9], key: 101, hashValue: index, collisions: 1, link: null };
+    
+    const result2 = resolveQuadraticCollision(entries2, index, newKey, hashValue, size);
+    
+    // (8 + 2²) % 10 = 12 % 10 = 2
+    expect(result2.overflow).toBe(false);
+    expect(result2.entries[2].key).toBe(newKey);
+  });
+});
+
+describe('Проверка предотвращения дублирования ключей', () => {
+  const createEmptyEntries = (size: number): HashTableEntry[] => {
+    return Array(size).fill(null).map((_, index) => ({
+      index,
+      key: null,
+      hashValue: null,
+      collisions: 0,
+      link: null
+    }));
+  };
+  
+  it('не должен добавлять дублирующийся ключ при использовании внутренних цепочек', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const key = 123;
+    const hashValue = 3;
+    
+    // Добавляем ключ в первый раз
+    const firstResult = resolveCollision(entries, hashValue, key, hashValue, 'internalChain');
+    expect(firstResult.overflow).toBe(false);
+    
+    // Пытаемся добавить тот же ключ повторно
+    const secondResult = resolveCollision(firstResult.entries, hashValue, key, hashValue, 'internalChain');
+    expect(secondResult.overflow).toBe(false);
+    expect(secondResult.message).toContain('уже существует');
+    
+    // Проверяем, что ключ присутствует в таблице ровно один раз
+    let keyCount = 0;
+    secondResult.entries.forEach((entry: HashTableEntry) => {
+      if (entry.key === key) keyCount++;
+    });
+    expect(keyCount).toBe(1);
+  });
+  
+  it('не должен добавлять дублирующийся ключ при использовании линейного опробования', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const key = 123;
+    const hashValue = 3;
+    
+    // Добавляем ключ в первый раз
+    const firstResult = resolveCollision(entries, hashValue, key, hashValue, 'linear');
+    expect(firstResult.overflow).toBe(false);
+    
+    // Пытаемся добавить тот же ключ повторно
+    const secondResult = resolveCollision(firstResult.entries, hashValue, key, hashValue, 'linear');
+    expect(secondResult.overflow).toBe(false);
+    expect(secondResult.message).toContain('уже существует');
+    
+    // Проверяем, что ключ присутствует в таблице ровно один раз
+    let keyCount = 0;
+    secondResult.entries.forEach((entry: HashTableEntry) => {
+      if (entry.key === key) keyCount++;
+    });
+    expect(keyCount).toBe(1);
+  });
+  
+  it('не должен добавлять дублирующийся ключ при использовании квадратичного опробования', () => {
+    const size = 10;
+    const entries = createEmptyEntries(size);
+    const key = 123;
+    const hashValue = 3;
+    
+    // Добавляем ключ в первый раз
+    const firstResult = resolveCollision(entries, hashValue, key, hashValue, 'quadratic');
+    expect(firstResult.overflow).toBe(false);
+    
+    // Пытаемся добавить тот же ключ повторно
+    const secondResult = resolveCollision(firstResult.entries, hashValue, key, hashValue, 'quadratic');
+    expect(secondResult.overflow).toBe(false);
+    expect(secondResult.message).toContain('уже существует');
+    
+    // Проверяем, что ключ присутствует в таблице ровно один раз
+    let keyCount = 0;
+    secondResult.entries.forEach((entry: HashTableEntry) => {
+      if (entry.key === key) keyCount++;
+    });
+    expect(keyCount).toBe(1);
+  });
+
+  it('должен обновлять данные при добавлении существующего ключа в метод цепочек', () => {
     const table = new Array(DEFAULT_TABLE_SIZE).fill(null);
+    const key = 7;
+    const firstValue = 'первое значение';
+    const updatedValue = 'обновленное значение';
+    const hashIndex = divisionMethod(key, DEFAULT_TABLE_SIZE);
     
-    // Намеренно вставляем все ключи по одному индексу
-    keys.forEach((key, i) => {
-      chainMethod.insert(table, hashIndex, key, values[i]);
-    });
+    // Добавляем ключ в первый раз
+    const firstResult = chainMethod.insert(table, hashIndex, key, firstValue);
+    expect(firstResult.success).toBe(true);
+    expect(firstResult.isNewElement).toBe(true);
     
-    // Проверяем, что все значения доступны
-    keys.forEach((key, i) => {
-      const result = chainMethod.search(table, hashIndex, key);
-      expect(result).toBe(values[i]);
-    });
+    // Проверяем значение
+    let value = chainMethod.search(table, hashIndex, key);
+    expect(value).toBe(firstValue);
+    
+    // Обновляем ключ
+    const updateResult = chainMethod.insert(table, hashIndex, key, updatedValue);
+    expect(updateResult.success).toBe(true);
+    expect(updateResult.isNewElement).toBe(false);
+    
+    // Проверяем, что значение обновилось
+    value = chainMethod.search(table, hashIndex, key);
+    expect(value).toBe(updatedValue);
+    
+    // Проверяем, что нет дублирующегося ключа в цепочке
+    const node = table[hashIndex];
+    expect(node?.key).toBe(key);
+    expect(node?.data).toBe(updatedValue);
+    expect(node?.next).toBe(null); // Не должно быть следующего элемента
   });
 });

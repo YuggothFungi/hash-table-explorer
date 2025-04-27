@@ -34,7 +34,7 @@ export class HashTable {
     }
 
     // Insert key-value pair
-    public insert(key: string | number, data: any): boolean {
+    public insert(key: string | number, data: any): boolean | { success: boolean, updated: boolean } {
         // Проверка на переполнение
         if (this.isOverflowed()) {
             // Таблица уже переполнена
@@ -47,8 +47,10 @@ export class HashTable {
         if (result.success) {
             if (result.isNewElement) {
                 this.elementsCount++;
+                return { success: true, updated: false }; // Новый элемент
+            } else {
+                return { success: true, updated: true }; // Обновленный элемент
             }
-            return true;
         }
         
         return false;

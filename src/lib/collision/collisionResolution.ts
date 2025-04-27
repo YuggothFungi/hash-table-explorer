@@ -14,6 +14,13 @@ export const calculateHash = (key: string | number, hashMethod: string, size: nu
 export const resolveCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, collisionMethod: string): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
 
+    // Проверяем, существует ли уже такой ключ в таблице
+    const existingKeyIndex = findKeyIndex(newEntries, key);
+    if (existingKeyIndex !== null) {
+        // Если ключ уже существует, считаем это успешной операцией без изменений
+        return { entries: newEntries, overflow: false, message: `Ключ "${key}" уже существует в таблице.` };
+    }
+
     if (collisionMethod === 'chain') {
         return resolveChainCollision(newEntries, index, key, hashValue);
     } else if (collisionMethod === 'internalChain') {
@@ -25,6 +32,16 @@ export const resolveCollision = (entries: HashTableEntry[], index: number, key: 
     }
 
     return { entries: newEntries, overflow: false };
+};
+
+// Функция для поиска индекса существующего ключа
+const findKeyIndex = (entries: HashTableEntry[], key: string | number): number | null => {
+    for (let i = 0; i < entries.length; i++) {
+        if (entries[i].key === key) {
+            return i;
+        }
+    }
+    return null;
 };
 
 const resolveChainCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number): { entries: HashTableEntry[], overflow: boolean } => {
@@ -96,8 +113,12 @@ const resolveLinearCollision = (entries: HashTableEntry[], index: number, key: s
     }
 };
 
-const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
+export const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key: string | number, hashValue: number, size: number): { entries: HashTableEntry[], overflow: boolean, message?: string } => {
     const newEntries = [...entries];
+    // Максимальное число проб - ограничиваем половиной размера таблицы
+    const MAX_PROBES = Math.ceil(size / 2);
+    
+    // Если ячейка свободна, вставляем элемент
     if (newEntries[index].key === null) {
         newEntries[index] = { ...newEntries[index], key, hashValue, collisions: 0 };
         return { entries: newEntries, overflow: false };
@@ -105,21 +126,29 @@ const resolveQuadraticCollision = (entries: HashTableEntry[], index: number, key
         let i = 1;
         let collisions = 1;
         let probeIndex = (index + i * i) % size;
-
-        while (newEntries[probeIndex].key !== null && i < size) {
+        
+        // Проверяем не более MAX_PROBES раз
+        while (newEntries[probeIndex].key !== null && i < MAX_PROBES) {
             i++;
             probeIndex = (index + i * i) % size;
             collisions++;
+            
+            // Если рассчитанный индекс выходит за пределы таблицы
+            if (probeIndex >= size) {
+                probeIndex %= size;
+            }
         }
-
-        if (i >= size) {
+        
+        // Если достигнут лимит проб или все ячейки заняты
+        if (i >= MAX_PROBES || collisions >= size) {
             return { 
                 entries: newEntries, 
                 overflow: true, 
-                message: 'Таблица переполнена или не удалось найти свободную ячейку при квадратичном опробовании!' 
+                message: `Превышено максимальное число проб (${MAX_PROBES}) при квадратичном опробовании!` 
             };
         }
-
+        
+        // Если найдена свободная ячейка - добавляем элемент
         newEntries[probeIndex] = { ...newEntries[probeIndex], key, hashValue, collisions };
         return { entries: newEntries, overflow: false };
     }
@@ -215,7 +244,9 @@ export const searchKey = (entries: HashTableEntry[], key: string | number, hashM
     // Для квадратичного пробирования
     let i = 1;
     let quadraticIndex = (index + i * i) % entries.length;
-    while (i < entries.length && entries[quadraticIndex].key !== null) {
+    // Ограничиваем максимальное количество проб
+    const MAX_SEARCH_PROBES = Math.ceil(entries.length / 2);
+    while (i < MAX_SEARCH_PROBES && entries[quadraticIndex].key !== null) {
         if (entries[quadraticIndex].key === key) {
             return { found: true, index: quadraticIndex };
         }

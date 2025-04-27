@@ -77,12 +77,25 @@ const App: React.FC = () => {
         
         // Для метода внешних цепочек используем класс HashTable
         if (params.collisionMethod === 'chain' && hashTableRef.current) {
-            const success = hashTableRef.current.insert(key, key);
-            if (!success) {
+            const result = hashTableRef.current.insert(key, key);
+            
+            if (!result) {
                 setNotification({
                     isVisible: true,
                     message: 'Ошибка при добавлении элемента в таблицу.',
                     type: 'error'
+                });
+                return;
+            }
+            
+            // Проверяем, был ли ключ обновлен
+            const isUpdated = typeof result === 'object' && result.updated;
+            
+            if (isUpdated) {
+                setNotification({
+                    isVisible: true,
+                    message: `Ключ "${key}" уже существует в таблице.`,
+                    type: 'warning'
                 });
                 return;
             }
@@ -136,12 +149,21 @@ const App: React.FC = () => {
             } else {
                 setEntries(result.entries);
                 
-                // Показываем уведомление об успешном добавлении
-                setNotification({
-                    isVisible: true,
-                    message: `Ключ "${key}" успешно добавлен в таблицу.`,
-                    type: 'success'
-                });
+                // Проверяем, есть ли сообщение о дубликате
+                if (result.message && result.message.includes('уже существует')) {
+                    setNotification({
+                        isVisible: true,
+                        message: result.message,
+                        type: 'warning' // Используем предупреждение вместо ошибки
+                    });
+                } else {
+                    // Показываем уведомление об успешном добавлении
+                    setNotification({
+                        isVisible: true,
+                        message: `Ключ "${key}" успешно добавлен в таблицу.`,
+                        type: 'success'
+                    });
+                }
             }
         }
         
